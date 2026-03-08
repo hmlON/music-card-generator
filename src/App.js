@@ -78,17 +78,40 @@ const SingleCardGenerator = () => {
               CARD_WIDTH - 2 * (BLEED + PADDING)
           );
 
+          const splitTextIntoLines = (ctx, text, maxWidth) => {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+              const word = words[i];
+              const width = ctx.measureText(currentLine + ' ' + word).width;
+              if (width < maxWidth) {
+                currentLine += ' ' + word;
+              } else {
+                lines.push(currentLine);
+                currentLine = word;
+              }
+            }
+            lines.push(currentLine);
+            return lines;
+          };
+
           // Draw album name
           ctx.font = '50px Nunito';
           ctx.fillStyle = darkenColor(textColor, 50); // Darken text color
           ctx.textAlign = 'left';
-          ctx.fillText(albumName, BLEED + PADDING * 2, BLEED + PADDING + CARD_WIDTH - 2 * (BLEED + PADDING) + 70);
+          const maxWidth = CARD_WIDTH - 2 * (BLEED + PADDING * 2);
+          const lines = splitTextIntoLines(ctx, albumName, maxWidth);
+          lines.forEach((line, index) => {
+            ctx.fillText(line, BLEED + PADDING * 2, BLEED + PADDING + CARD_WIDTH - 2 * (BLEED + PADDING) + 70 + index * 60);
+          });
 
           // Draw artist name
           ctx.font = '35px Nunito';
           ctx.fillStyle = darkenColor(textColor, 100); // Darken text color
           ctx.textAlign = 'left';
-          ctx.fillText(artistName, BLEED + PADDING * 2, BLEED + PADDING + CARD_WIDTH - 2 * (BLEED + PADDING) + 120);
+          ctx.fillText(artistName, BLEED + PADDING * 2, BLEED + PADDING + CARD_WIDTH - 2 * (BLEED + PADDING) + 60 + lines.length * 60);
         };
       };
     }
@@ -237,4 +260,110 @@ const SingleCardGenerator = () => {
   );
 };
 
-export default SingleCardGenerator;
+const A4PageGenerator = () => {
+  const canvasRef = useRef(null);
+  const [cardImages, setCardImages] = useState(Array(9).fill(null));
+
+  const A4_WIDTH = 2480; // A4 width in pixels at 300 DPI
+  const A4_HEIGHT = 3508; // A4 height in pixels at 300 DPI
+  const CARD_WIDTH = 744; // Card width with bleed
+  const CARD_HEIGHT = 1040; // Card height with bleed
+
+  const handleCardUpload = (index, event) => {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const newCardImages = [...cardImages];
+      newCardImages[index] = e.target.result;
+      setCardImages(newCardImages);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const drawA4Page = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    // Clear the canvas
+    ctx.clearRect(0, 0, A4_WIDTH, A4_HEIGHT);
+
+    // Fill the canvas with white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
+
+    // Draw each card image
+    cardImages.forEach((imageSrc, index) => {
+      if (imageSrc) {
+        const img = new Image();
+        img.src = imageSrc;
+        img.onload = () => {
+          const x = (index % 3) * CARD_WIDTH;
+          const y = Math.floor(index / 3) * CARD_HEIGHT;
+          ctx.drawImage(img, x, y, CARD_WIDTH, CARD_HEIGHT);
+        };
+      }
+    });
+  };
+
+  useEffect(() => {
+    drawA4Page();
+  }, [cardImages]);
+
+  const handleDownload = () => {
+    const canvas = canvasRef.current;
+    const link = document.createElement('a');
+    link.download = 'a4-page.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+  return (
+      <div style={{ textAlign: 'center', fontFamily: 'Nunito, sans-serif' }}>
+        <h1>A4 Page Generator</h1>
+
+        {/* Card Uploads */}
+        <div>
+          {cardImages.map((_, index) => (
+              <div key={index}>
+                <label htmlFor={`cardUpload${index}`}>Upload Card {index + 1}:</label>
+                <input
+                    type="file"
+                    id={`cardUpload${index}`}
+                    accept="image/*"
+                    onChange={(e) => handleCardUpload(index, e)}
+                />
+              </div>
+          ))}
+        </div>
+
+        {/* Canvas Wrapper */}
+        <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+          {/* Canvas Wrapper */}
+          <div style={{overflow: 'auto', maxWidth: '80%', border: '1px solid black'}}>
+            <canvas
+                ref={canvasRef}
+                width={A4_WIDTH}
+                height={A4_HEIGHT}
+                style={{border: '0px solid black', width: '100%', height: 'auto'}}
+            ></canvas>
+          </div>
+        </div>
+
+        {/* Download Button */}
+        <div style={{marginTop: '10px'}}>
+          <button onClick={handleDownload}>Download A4 Page</button>
+        </div>
+      </div>
+  );
+};
+
+const App = () => {
+  return (
+      <div>
+        <SingleCardGenerator/>
+        <A4PageGenerator/>
+      </div>
+  );
+};
+
+export default App;
