@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import './App.css'; // Ensure you have this import if you are using App.css
 
 const SingleCardGenerator = () => {
@@ -24,7 +24,7 @@ const SingleCardGenerator = () => {
     r = r < 0 ? 0 : r;
     g = g < 0 ? 0 : g;
     b = b < 0 ? 0 : b;
-    return (usePound ? "#" : "") + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
+    return (usePound ? "#" : "") + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
   };
 
   // Standard card size with 3mm bleed
@@ -34,7 +34,7 @@ const SingleCardGenerator = () => {
   const PADDING = 50; // Padding for image
 
   // Function to draw the single card
-  const drawCard = () => {
+  const drawCard = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
@@ -134,12 +134,12 @@ const SingleCardGenerator = () => {
         ctx.globalCompositeOperation = 'source-over';
       };
     }
-  };
+  }, [mainImageSrc, footerImageSrc, bgColor, artistName, albumName, textColor]);
 
   // Effect to redraw the card whenever state changes
   useEffect(() => {
     drawCard();
-  }, [mainImageSrc, footerImageSrc, bgColor, artistName, albumName, textColor]);
+  }, [drawCard]);
 
   // Handle image upload for the main image
   const handleMainImageUpload = (event) => {
@@ -280,7 +280,7 @@ const A4PageGenerator = () => {
     reader.readAsDataURL(file);
   };
 
-  const drawA4Page = () => {
+  const drawA4Page = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
@@ -303,11 +303,11 @@ const A4PageGenerator = () => {
         };
       }
     });
-  };
+  }, [cardImages]);
 
   useEffect(() => {
     drawA4Page();
-  }, [cardImages]);
+  }, [drawA4Page]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
