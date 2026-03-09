@@ -164,90 +164,101 @@ const SingleCardGenerator = () => {
   };
 
   return (
-      <div style={{ textAlign: 'center', fontFamily: 'Nunito, sans-serif' }}>
-        <h1>Single Playing Card Generator</h1>
+      <div style={{ fontFamily: 'Nunito, sans-serif', padding: '20px' }}>
+        <h1 style={{ textAlign: 'center' }}>Single Playing Card Generator</h1>
 
-        {/* Main Image Upload */}
-        <div>
-          <label htmlFor="mainImageUpload">Upload Main Image:</label>
-          <input
-              type="file"
-              id="mainImageUpload"
-              accept="image/*"
-              onChange={handleMainImageUpload}
-          />
-        </div>
+        <div className="card-generator-container">
+          {/* Left side - Options */}
+          <div className="options-panel">
+            {/* Main Image Upload */}
+            <div>
+              <label htmlFor="mainImageUpload" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Upload Main Image:</label>
+              <input
+                  type="file"
+                  id="mainImageUpload"
+                  accept="image/*"
+                  onChange={handleMainImageUpload}
+                  style={{ width: '100%' }}
+              />
+            </div>
 
-        {/* Footer Image Upload */}
-        <div>
-          <label htmlFor="footerImageUpload">Upload Footer Image:</label>
-          <input
-              type="file"
-              id="footerImageUpload"
-              accept="image/*"
-              onChange={handleFooterImageUpload}
-          />
-        </div>
+            {/* Footer Image Upload */}
+            <div>
+              <label htmlFor="footerImageUpload" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Upload Footer Image:</label>
+              <input
+                  type="file"
+                  id="footerImageUpload"
+                  accept="image/*"
+                  onChange={handleFooterImageUpload}
+                  style={{ width: '100%' }}
+              />
+            </div>
 
-        {/* Artist Name Input */}
-        <div>
-          <label htmlFor="artistName">Artist Name:</label>
-          <input
-              type="text"
-              id="artistName"
-              placeholder="Enter artist name"
-              value={artistName}
-              onChange={(e) => setArtistName(e.target.value)}
-          />
-        </div>
+            {/* Artist Name Input */}
+            <div>
+              <label htmlFor="artistName" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Artist Name:</label>
+              <input
+                  type="text"
+                  id="artistName"
+                  placeholder="Enter artist name"
+                  value={artistName}
+                  onChange={(e) => setArtistName(e.target.value)}
+                  style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+              />
+            </div>
 
-        {/* Album Name Input */}
-        <div>
-          <label htmlFor="albumName">Album Name:</label>
-          <input
-              type="text"
-              id="albumName"
-              placeholder="Enter album name"
-              value={albumName}
-              onChange={(e) => setAlbumName(e.target.value)}
-          />
-        </div>
+            {/* Album Name Input */}
+            <div>
+              <label htmlFor="albumName" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Album Name:</label>
+              <input
+                  type="text"
+                  id="albumName"
+                  placeholder="Enter album name"
+                  value={albumName}
+                  onChange={(e) => setAlbumName(e.target.value)}
+                  style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+              />
+            </div>
 
-        {/* Text Color */}
-        <div>
-          <label htmlFor="textColor">Text Color:</label>
-          <input
-              type="color"
-              id="textColor"
-              value={textColor}
-              onChange={(e) => setTextColor(e.target.value)}
-          />
-        </div>
+            {/* Text Color */}
+            <div>
+              <label htmlFor="textColor" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Text Color:</label>
+              <input
+                  type="color"
+                  id="textColor"
+                  value={textColor}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  style={{ width: '100%', height: '40px', cursor: 'pointer' }}
+              />
+            </div>
 
-        {/* Background Color */}
-        <div>
-          <label htmlFor="bgColor">Background Color:</label>
-          <input
-              type="color"
-              id="bgColor"
-              value={bgColor}
-              onChange={(e) => setBgColor(e.target.value)}
-          />
-        </div>
+            {/* Background Color */}
+            <div>
+              <label htmlFor="bgColor" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Background Color:</label>
+              <input
+                  type="color"
+                  id="bgColor"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  style={{ width: '100%', height: '40px', cursor: 'pointer' }}
+              />
+            </div>
 
-        {/* Canvas */}
-        <div>
-          <canvas
-              ref={canvasRef}
-              width={CARD_WIDTH}
-              height={CARD_HEIGHT}
-              style={{ border: '1px solid black', marginTop: '20px' }}
-          ></canvas>
-        </div>
+            {/* Download Button */}
+            <div style={{ marginTop: '20px' }}>
+              <button onClick={handleDownload} style={{ width: '100%', padding: '12px', fontSize: '16px', cursor: 'pointer' }}>Download Card</button>
+            </div>
+          </div>
 
-        {/* Download Button */}
-        <div style={{ marginTop: '10px' }}>
-          <button onClick={handleDownload}>Download Card</button>
+          {/* Right side - Preview */}
+          <div className="preview-panel">
+            <canvas
+                ref={canvasRef}
+                width={CARD_WIDTH}
+                height={CARD_HEIGHT}
+                style={{ border: '1px solid black', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }}
+            ></canvas>
+          </div>
         </div>
       </div>
   );
@@ -556,111 +567,119 @@ const A4PageGenerator = () => {
   };
 
   return (
-      <div style={{ textAlign: 'center', fontFamily: 'Nunito, sans-serif' }}>
-        <h1>Page Generator</h1>
+      <div style={{ fontFamily: 'Nunito, sans-serif', padding: '20px', marginTop: '40px', borderTop: '2px solid #ccc' }}>
+        <h1 style={{ textAlign: 'center' }}>Page Generator</h1>
 
-        {/* Page Size Selector */}
-        <div style={{marginBottom: '20px'}}>
-          <label htmlFor="pageSize">Select Page Size: </label>
-          <select
-              id="pageSize"
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(e.target.value)}
-              style={{padding: '5px', fontSize: '16px', marginRight: '20px'}}
-          >
-            <option value="a4">A4</option>
-            <option value="10x15">10x15cm</option>
-          </select>
-
-          <label htmlFor="cardSize">Select Card Size: </label>
-          <select
-              id="cardSize"
-              value={cardSize}
-              onChange={(e) => handleCardSizeChange(e.target.value)}
-              style={{padding: '5px', fontSize: '16px'}}
-          >
-            <option value="playing">Playing Card (63x88mm)</option>
-            <option value="business">Wallet Card (50x70mm - same ratio as playing card)</option>
-          </select>
-
-          <div style={{marginTop: '10px', fontSize: '14px', color: '#666'}}>
-            {currentPageSize.totalCards} card{currentPageSize.totalCards !== 1 ? 's' : ''} will fit on this page
-            {currentPageSize.rotated && ' (rotated 90°)'}
-          </div>
-        </div>
-
-        {/* Equal Spacing Mode Toggle */}
-        <div style={{marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px'}}>
-          <label>
-            <input
-                type="checkbox"
-                checked={useEqualSpacing}
-                onChange={(e) => handleEqualSpacingChange(e.target.checked)}
-                style={{marginRight: '10px'}}
-            />
-            Use equal spacing (cards at edges with equal spacing between cards)
-          </label>
-        </div>
-
-        {/* Single Image Mode Toggle */}
-        <div style={{marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px'}}>
-          <label>
-            <input
-                type="checkbox"
-                checked={useSingleImage}
-                onChange={(e) => setUseSingleImage(e.target.checked)}
-                style={{marginRight: '10px'}}
-            />
-            Use single image and repeat it across all cards
-          </label>
-
-          {useSingleImage && (
-            <div style={{marginTop: '10px'}}>
-              <label htmlFor="singleImageUpload">Upload Image to Repeat:</label>
-              <input
-                  type="file"
-                  id="singleImageUpload"
-                  accept="image/*"
-                  onChange={handleSingleImageUpload}
-                  style={{marginLeft: '10px'}}
-              />
+        <div className="card-generator-container">
+          {/* Left side - Options */}
+          <div className="options-panel">
+            {/* Page Size Selector */}
+            <div>
+              <label htmlFor="pageSize" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Select Page Size:</label>
+              <select
+                  id="pageSize"
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(e.target.value)}
+                  style={{width: '100%', padding: '8px', fontSize: '16px'}}
+              >
+                <option value="a4">A4</option>
+                <option value="10x15">10x15cm</option>
+              </select>
             </div>
-          )}
-        </div>
 
-        {/* Card Uploads */}
-        {!useSingleImage && (
-          <div>
-            {cardImages.map((_, index) => (
-                <div key={index}>
-                  <label htmlFor={`cardUpload${index}`}>Upload Card {index + 1}:</label>
+            {/* Card Size Selector */}
+            <div>
+              <label htmlFor="cardSize" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Select Card Size:</label>
+              <select
+                  id="cardSize"
+                  value={cardSize}
+                  onChange={(e) => handleCardSizeChange(e.target.value)}
+                  style={{width: '100%', padding: '8px', fontSize: '16px'}}
+              >
+                <option value="playing">Playing Card (63x88mm)</option>
+                <option value="business">Wallet Card (50x70mm)</option>
+              </select>
+            </div>
+
+            <div style={{padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px', fontSize: '14px', color: '#666'}}>
+              {currentPageSize.totalCards} card{currentPageSize.totalCards !== 1 ? 's' : ''} will fit on this page
+              {currentPageSize.rotated && ' (rotated 90°)'}
+            </div>
+
+            {/* Equal Spacing Mode Toggle */}
+            <div style={{padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px'}}>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                    type="checkbox"
+                    checked={useEqualSpacing}
+                    onChange={(e) => handleEqualSpacingChange(e.target.checked)}
+                    style={{marginRight: '10px'}}
+                />
+                <span style={{ fontSize: '14px' }}>Use equal spacing (cards at edges with equal spacing between cards)</span>
+              </label>
+            </div>
+
+            {/* Single Image Mode Toggle */}
+            <div style={{padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px'}}>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                    type="checkbox"
+                    checked={useSingleImage}
+                    onChange={(e) => setUseSingleImage(e.target.checked)}
+                    style={{marginRight: '10px'}}
+                />
+                <span style={{ fontSize: '14px' }}>Use single image and repeat it across all cards</span>
+              </label>
+
+              {useSingleImage && (
+                <div style={{marginTop: '10px'}}>
+                  <label htmlFor="singleImageUpload" style={{ display: 'block', marginBottom: '5px', fontSize: '13px' }}>Upload Image to Repeat:</label>
                   <input
                       type="file"
-                      id={`cardUpload${index}`}
+                      id="singleImageUpload"
                       accept="image/*"
-                      onChange={(e) => handleCardUpload(index, e)}
+                      onChange={handleSingleImageUpload}
+                      style={{width: '100%'}}
                   />
                 </div>
-            ))}
-          </div>
-        )}
+              )}
+            </div>
 
-        {/* Canvas Wrapper */}
-        <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-          {/* Canvas Wrapper */}
-          <div style={{overflow: 'auto', maxWidth: '80%', border: '1px solid black'}}>
+            {/* Card Uploads */}
+            {!useSingleImage && (
+              <div style={{ maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {cardImages.map((_, index) => (
+                    <div key={index}>
+                      <label htmlFor={`cardUpload${index}`} style={{ display: 'block', marginBottom: '5px', fontSize: '13px' }}>Upload Card {index + 1}:</label>
+                      <input
+                          type="file"
+                          id={`cardUpload${index}`}
+                          accept="image/*"
+                          onChange={(e) => handleCardUpload(index, e)}
+                          style={{width: '100%'}}
+                      />
+                    </div>
+                ))}
+              </div>
+            )}
+
+            {/* Download Button */}
+            <div style={{marginTop: '20px'}}>
+              <button onClick={handleDownload} style={{ width: '100%', padding: '12px', fontSize: '16px', cursor: 'pointer' }}>
+                Download {pageSize === 'a4' ? 'A4' : '10x15cm'} Page
+              </button>
+            </div>
+          </div>
+
+          {/* Right side - Preview */}
+          <div className="preview-panel-page">
             <canvas
                 ref={canvasRef}
                 width={PAGE_WIDTH}
                 height={PAGE_HEIGHT}
-                style={{border: '0px solid black', width: '100%', height: 'auto'}}
+                style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', border: '1px solid black', objectFit: 'contain' }}
             ></canvas>
           </div>
-        </div>
-
-        {/* Download Button */}
-        <div style={{marginTop: '10px'}}>
-          <button onClick={handleDownload}>Download {pageSize === 'a4' ? 'A4' : '10x15cm'} Page</button>
         </div>
       </div>
   );

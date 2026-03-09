@@ -36,3 +36,59 @@
     transform: rotate(360deg);
   }
 }
+
+/* Responsive layout styles */
+.card-generator-container {
+  display: flex;
+  gap: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.options-panel {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.preview-panel {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  height: calc(100vh - 140px);
+}
+
+.preview-panel-page {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  height: calc(100vh - 180px);
+}
+
+/* Mobile layout - stack vertically with preview at bottom */
+@media (max-width: 768px) {
+  .card-generator-container {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .options-panel {
+    flex: none;
+    width: 100%;
+  }
+
+  .preview-panel,
+  .preview-panel-page {
+    flex: none;
+    width: 100%;
+    height: auto;
+    min-height: 400px;
+    order: 2;
+  }
+}
+
