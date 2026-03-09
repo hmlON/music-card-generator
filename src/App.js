@@ -27,10 +27,9 @@ const SingleCardGenerator = () => {
     return (usePound ? "#" : "") + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
   };
 
-  // Standard card size with 3mm bleed
-  const CARD_WIDTH = 744; // Card width with bleed
-  const CARD_HEIGHT = 1040; // Card height with bleed
-  const BLEED = 35; // 3mm bleed in pixels
+  // Standard card size without bleed
+  const CARD_WIDTH = 674; // Card width without bleed (63mm at 300 DPI)
+  const CARD_HEIGHT = 970; // Card height without bleed (88mm - 2*3mm at 300 DPI)
   const PADDING = 50; // Padding for image
 
   // Function to draw the single card
@@ -60,22 +59,16 @@ const SingleCardGenerator = () => {
         );
         ctx.filter = 'none';
 
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, BLEED, CARD_HEIGHT);
-        ctx.fillRect(CARD_WIDTH - BLEED, 0, BLEED, CARD_HEIGHT);
-        ctx.fillRect(0, 0, CARD_WIDTH, BLEED);
-        ctx.fillRect(0, CARD_HEIGHT - BLEED, CARD_WIDTH, BLEED);
-
         const mainImg = new Image();
         mainImg.src = mainImageSrc;
         mainImg.onload = () => {
           // Draw the main image within the card
           ctx.drawImage(
               mainImg,
-              BLEED + PADDING,
-              BLEED + PADDING,
-              CARD_WIDTH - 2 * (BLEED + PADDING),
-              CARD_WIDTH - 2 * (BLEED + PADDING)
+              PADDING,
+              PADDING,
+              CARD_WIDTH - 2 * PADDING,
+              CARD_WIDTH - 2 * PADDING
           );
 
           const splitTextIntoLines = (ctx, text, maxWidth) => {
@@ -101,17 +94,17 @@ const SingleCardGenerator = () => {
           ctx.font = '50px Nunito';
           ctx.fillStyle = darkenColor(textColor, 50); // Darken text color
           ctx.textAlign = 'left';
-          const maxWidth = CARD_WIDTH - 2 * (BLEED + PADDING * 2);
+          const maxWidth = CARD_WIDTH - 2 * (PADDING * 2);
           const lines = splitTextIntoLines(ctx, albumName, maxWidth);
           lines.forEach((line, index) => {
-            ctx.fillText(line, BLEED + PADDING * 2, BLEED + PADDING + CARD_WIDTH - 2 * (BLEED + PADDING) + 70 + index * 60);
+            ctx.fillText(line, PADDING * 2, PADDING + CARD_WIDTH - 2 * PADDING + 70 + index * 60);
           });
 
           // Draw artist name
           ctx.font = '35px Nunito';
           ctx.fillStyle = darkenColor(textColor, 100); // Darken text color
           ctx.textAlign = 'left';
-          ctx.fillText(artistName, BLEED + PADDING * 2, BLEED + PADDING + CARD_WIDTH - 2 * (BLEED + PADDING) + 60 + lines.length * 60);
+          ctx.fillText(artistName, PADDING * 2, PADDING + CARD_WIDTH - 2 * PADDING + 60 + lines.length * 60);
         };
       };
     }
@@ -122,13 +115,13 @@ const SingleCardGenerator = () => {
       footerImg.src = footerImageSrc;
       footerImg.onload = () => {
         const aspectRatio = footerImg.width / footerImg.height;
-        const footerHeight = (CARD_WIDTH - 2 * BLEED) / aspectRatio; // Calculate height based on aspect ratio
+        const footerHeight = CARD_WIDTH / aspectRatio; // Calculate height based on aspect ratio
         ctx.globalCompositeOperation = 'lighten';
         ctx.drawImage(
             footerImg,
-            BLEED,
-            CARD_HEIGHT - BLEED - footerHeight,
-            CARD_WIDTH - 2 * BLEED,
+            0,
+            CARD_HEIGHT - footerHeight,
+            CARD_WIDTH,
             footerHeight
         );
         ctx.globalCompositeOperation = 'source-over';
@@ -267,17 +260,18 @@ const A4PageGenerator = () => {
   const [cardImages, setCardImages] = useState(Array(9).fill(null));
   const [useSingleImage, setUseSingleImage] = useState(false); // Toggle for single image mode
   const [singleImage, setSingleImage] = useState(null); // Single image to repeat
+  const [useEqualSpacing, setUseEqualSpacing] = useState(false); // Toggle for equal spacing mode
 
-  // Card dimensions based on selected card size (at 300 DPI with 3mm bleed)
+  // Card dimensions based on selected card size (at 300 DPI without bleed)
   const cardSizes = {
     playing: {
-      width: 744, // Playing card: 63mm (2.48") width with bleed
-      height: 1040, // Playing card: 88mm (3.46") height with bleed
+      width: 674, // Playing card: 63mm (2.48") width without bleed
+      height: 970, // Playing card: 88mm (3.46") height without bleed
       name: 'Playing Card'
     },
     business: {
-      width: 590, // Wallet card: 50mm width with bleed (maintaining 63:88 ratio)
-      height: 825, // Wallet card: 70mm height with bleed (maintaining 63:88 ratio, fits in wallet)
+      width: 520, // Wallet card: 50mm width without bleed
+      height: 755, // Wallet card: 70mm height without bleed (maintaining 63:88 ratio, fits in wallet)
       name: 'Business Card'
     }
   };
@@ -287,30 +281,69 @@ const A4PageGenerator = () => {
   const CARD_HEIGHT = currentCardSize.height;
 
   // Calculate how many cards fit based on page and card size
-  const calculateCardsPerPage = (pageWidth, pageHeight, cardWidth, cardHeight) => {
-    // Try portrait orientation
-    const portraitCardsPerRow = Math.floor(pageWidth / cardWidth);
-    const portraitCardsPerColumn = Math.floor(pageHeight / cardHeight);
-    const portraitTotal = portraitCardsPerRow * portraitCardsPerColumn;
+  const calculateCardsPerPage = (pageWidth, pageHeight, cardWidth, cardHeight, equalSpacing = false) => {
+    if (equalSpacing) {
+      // For equal spacing mode, calculate based on card dimensions
+      // Cards are positioned at edges with equal spacing between them
 
-    // Try landscape orientation (rotated 90 degrees)
-    const landscapeCardsPerRow = Math.floor(pageWidth / cardHeight);
-    const landscapeCardsPerColumn = Math.floor(pageHeight / cardWidth);
-    const landscapeTotal = landscapeCardsPerRow * landscapeCardsPerColumn;
+      // Try portrait orientation
+      const portraitCardsPerRow = Math.floor(pageWidth / cardWidth);
+      const portraitCardsPerColumn = Math.floor(pageHeight / cardHeight);
+      const portraitTotal = portraitCardsPerRow * portraitCardsPerColumn;
 
-    // Choose the orientation that fits more cards
-    if (landscapeTotal > portraitTotal) {
-      return {
-        cardsPerRow: landscapeCardsPerRow,
-        totalCards: landscapeTotal,
-        rotated: true
-      };
+      // Try landscape orientation (rotated 90 degrees)
+      const landscapeCardsPerRow = Math.floor(pageWidth / cardHeight);
+      const landscapeCardsPerColumn = Math.floor(pageHeight / cardWidth);
+      const landscapeTotal = landscapeCardsPerRow * landscapeCardsPerColumn;
+
+      // Choose the orientation that fits more cards
+      if (landscapeTotal > portraitTotal) {
+        return {
+          cardsPerRow: landscapeCardsPerRow,
+          cardsPerColumn: landscapeCardsPerColumn,
+          totalCards: landscapeTotal,
+          rotated: true,
+          cardWidth,
+          cardHeight
+        };
+      } else {
+        return {
+          cardsPerRow: portraitCardsPerRow,
+          cardsPerColumn: portraitCardsPerColumn,
+          totalCards: portraitTotal,
+          rotated: false,
+          cardWidth,
+          cardHeight
+        };
+      }
     } else {
-      return {
-        cardsPerRow: portraitCardsPerRow,
-        totalCards: portraitTotal,
-        rotated: false
-      };
+      // Original logic for non-equal spacing (cards can overlap slightly)
+      // Try portrait orientation
+      const portraitCardsPerRow = Math.floor(pageWidth / cardWidth);
+      const portraitCardsPerColumn = Math.floor(pageHeight / cardHeight);
+      const portraitTotal = portraitCardsPerRow * portraitCardsPerColumn;
+
+      // Try landscape orientation (rotated 90 degrees)
+      const landscapeCardsPerRow = Math.floor(pageWidth / cardHeight);
+      const landscapeCardsPerColumn = Math.floor(pageHeight / cardWidth);
+      const landscapeTotal = landscapeCardsPerRow * landscapeCardsPerColumn;
+
+      // Choose the orientation that fits more cards
+      if (landscapeTotal > portraitTotal) {
+        return {
+          cardsPerRow: landscapeCardsPerRow,
+          cardsPerColumn: landscapeCardsPerColumn,
+          totalCards: landscapeTotal,
+          rotated: true
+        };
+      } else {
+        return {
+          cardsPerRow: portraitCardsPerRow,
+          cardsPerColumn: portraitCardsPerColumn,
+          totalCards: portraitTotal,
+          rotated: false
+        };
+      }
     }
   };
 
@@ -319,12 +352,12 @@ const A4PageGenerator = () => {
     a4: {
       width: 2480, // A4 width in pixels at 300 DPI
       height: 3508, // A4 height in pixels at 300 DPI
-      ...calculateCardsPerPage(2480, 3508, CARD_WIDTH, CARD_HEIGHT)
+      ...calculateCardsPerPage(2480, 3508, CARD_WIDTH, CARD_HEIGHT, useEqualSpacing)
     },
     '10x15': {
       width: 1772, // 10x15cm width in pixels at 300 DPI
       height: 1181, // 10x15cm height in pixels at 300 DPI
-      ...calculateCardsPerPage(1772, 1181, CARD_WIDTH, CARD_HEIGHT)
+      ...calculateCardsPerPage(1772, 1181, CARD_WIDTH, CARD_HEIGHT, useEqualSpacing)
     }
   };
 
@@ -337,7 +370,7 @@ const A4PageGenerator = () => {
     const newPageSize = newSize === 'a4'
       ? { width: 2480, height: 3508 }
       : { width: 1772, height: 1181 };
-    const cardLayout = calculateCardsPerPage(newPageSize.width, newPageSize.height, CARD_WIDTH, CARD_HEIGHT);
+    const cardLayout = calculateCardsPerPage(newPageSize.width, newPageSize.height, CARD_WIDTH, CARD_HEIGHT, useEqualSpacing);
     setCardImages(Array(cardLayout.totalCards).fill(null));
   };
 
@@ -351,7 +384,23 @@ const A4PageGenerator = () => {
       currentPageDimensions.width,
       currentPageDimensions.height,
       newCardDimensions.width,
-      newCardDimensions.height
+      newCardDimensions.height,
+      useEqualSpacing
+    );
+    setCardImages(Array(cardLayout.totalCards).fill(null));
+  };
+
+  const handleEqualSpacingChange = (enabled) => {
+    setUseEqualSpacing(enabled);
+    const currentPageDimensions = pageSize === 'a4'
+      ? { width: 2480, height: 3508 }
+      : { width: 1772, height: 1181 };
+    const cardLayout = calculateCardsPerPage(
+      currentPageDimensions.width,
+      currentPageDimensions.height,
+      CARD_WIDTH,
+      CARD_HEIGHT,
+      enabled
     );
     setCardImages(Array(cardLayout.totalCards).fill(null));
   };
@@ -392,33 +441,107 @@ const A4PageGenerator = () => {
       ? Array(currentPageSize.totalCards).fill(singleImage)
       : cardImages;
 
-    // Draw each card image based on current page size
-    imagesToDraw.forEach((imageSrc, index) => {
-      if (imageSrc) {
-        const img = new Image();
-        img.src = imageSrc;
-        img.onload = () => {
-          if (currentPageSize.rotated) {
-            // Draw rotated cards (landscape orientation)
-            const x = (index % currentPageSize.cardsPerRow) * CARD_HEIGHT;
-            const y = Math.floor(index / currentPageSize.cardsPerRow) * CARD_WIDTH;
+    if (useEqualSpacing) {
+      // Equal spacing mode: cards at edges with equal spacing between
+      const cardWidth = currentPageSize.cardWidth;
+      const cardHeight = currentPageSize.cardHeight;
+      const cardsPerRow = currentPageSize.cardsPerRow;
+      const cardsPerColumn = currentPageSize.cardsPerColumn;
 
-            ctx.save();
-            // Move to the position and rotate
-            ctx.translate(x + CARD_HEIGHT, y);
-            ctx.rotate(Math.PI / 2);
-            ctx.drawImage(img, 0, 0, CARD_WIDTH, CARD_HEIGHT);
-            ctx.restore();
-          } else {
-            // Draw normal cards (portrait orientation)
-            const x = (index % currentPageSize.cardsPerRow) * CARD_WIDTH;
-            const y = Math.floor(index / currentPageSize.cardsPerRow) * CARD_HEIGHT;
-            ctx.drawImage(img, x, y, CARD_WIDTH, CARD_HEIGHT);
-          }
-        };
+      // Calculate spacing between cards
+      // For equal spacing: first card at (0,0), last card at (pageWidth-cardWidth, pageHeight-cardHeight)
+      // Space between cards = (totalSpace - allCardWidths) / (numCards - 1)
+      const effectiveCardWidth = currentPageSize.rotated ? cardHeight : cardWidth;
+      const effectiveCardHeight = currentPageSize.rotated ? cardWidth : cardHeight;
+
+      // Calculate spacing to distribute cards from edge to edge
+      let horizontalSpacing = 0;
+      let verticalSpacing = 0;
+
+      if (cardsPerRow > 1) {
+        // Space available between cards
+        horizontalSpacing = (PAGE_WIDTH - effectiveCardWidth * cardsPerRow) / (cardsPerRow - 1);
       }
-    });
-  }, [cardImages, singleImage, useSingleImage, PAGE_WIDTH, PAGE_HEIGHT, currentPageSize.cardsPerRow, currentPageSize.rotated, currentPageSize.totalCards, CARD_WIDTH, CARD_HEIGHT]);
+
+      if (cardsPerColumn > 1) {
+        // Space available between cards
+        verticalSpacing = (PAGE_HEIGHT - effectiveCardHeight * cardsPerColumn) / (cardsPerColumn - 1);
+      }
+
+      // Draw each card image
+      imagesToDraw.forEach((imageSrc, index) => {
+        if (imageSrc) {
+          const img = new Image();
+          img.src = imageSrc;
+          img.onload = () => {
+            const row = Math.floor(index / cardsPerRow);
+            const col = index % cardsPerRow;
+
+            if (currentPageSize.rotated) {
+              // Rotated cards (landscape orientation)
+              // Use consistent effective dimensions for positioning
+              const x = col * (effectiveCardWidth + horizontalSpacing);
+              const y = row * (effectiveCardHeight + verticalSpacing);
+
+              ctx.save();
+              ctx.translate(x + effectiveCardWidth, y);
+              ctx.rotate(Math.PI / 2);
+
+              // Draw the full source image scaled to fit the destination dimensions
+              ctx.drawImage(
+                img,
+                0, 0, // Draw entire source image
+                img.width, img.height, // Source size (full image)
+                0, 0, // Destination position
+                cardWidth, cardHeight // Destination size
+              );
+              ctx.restore();
+            } else {
+              // Portrait cards
+              const x = col * (effectiveCardWidth + horizontalSpacing);
+              const y = row * (effectiveCardHeight + verticalSpacing);
+
+              // Draw the full source image scaled to fit the destination dimensions
+              ctx.drawImage(
+                img,
+                0, 0, // Draw entire source image
+                img.width, img.height, // Source size (full image)
+                x, y, // Destination position
+                cardWidth, cardHeight // Destination size
+              );
+            }
+          };
+        }
+      });
+    } else {
+      // Original mode: cards with bleed overlapping
+      imagesToDraw.forEach((imageSrc, index) => {
+        if (imageSrc) {
+          const img = new Image();
+          img.src = imageSrc;
+          img.onload = () => {
+            if (currentPageSize.rotated) {
+              // Draw rotated cards (landscape orientation)
+              const x = (index % currentPageSize.cardsPerRow) * CARD_HEIGHT;
+              const y = Math.floor(index / currentPageSize.cardsPerRow) * CARD_WIDTH;
+
+              ctx.save();
+              // Move to the position and rotate
+              ctx.translate(x + CARD_HEIGHT, y);
+              ctx.rotate(Math.PI / 2);
+              ctx.drawImage(img, 0, 0, CARD_WIDTH, CARD_HEIGHT);
+              ctx.restore();
+            } else {
+              // Draw normal cards (portrait orientation)
+              const x = (index % currentPageSize.cardsPerRow) * CARD_WIDTH;
+              const y = Math.floor(index / currentPageSize.cardsPerRow) * CARD_HEIGHT;
+              ctx.drawImage(img, x, y, CARD_WIDTH, CARD_HEIGHT);
+            }
+          };
+        }
+      });
+    }
+  }, [cardImages, singleImage, useSingleImage, useEqualSpacing, PAGE_WIDTH, PAGE_HEIGHT, currentPageSize, CARD_WIDTH, CARD_HEIGHT]);
 
   useEffect(() => {
     drawA4Page();
@@ -464,6 +587,19 @@ const A4PageGenerator = () => {
             {currentPageSize.totalCards} card{currentPageSize.totalCards !== 1 ? 's' : ''} will fit on this page
             {currentPageSize.rotated && ' (rotated 90°)'}
           </div>
+        </div>
+
+        {/* Equal Spacing Mode Toggle */}
+        <div style={{marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px'}}>
+          <label>
+            <input
+                type="checkbox"
+                checked={useEqualSpacing}
+                onChange={(e) => handleEqualSpacingChange(e.target.checked)}
+                style={{marginRight: '10px'}}
+            />
+            Use equal spacing (cards at edges with equal spacing between cards)
+          </label>
         </div>
 
         {/* Single Image Mode Toggle */}
