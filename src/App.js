@@ -265,6 +265,8 @@ const A4PageGenerator = () => {
   const [pageSize, setPageSize] = useState('a4'); // 'a4' or '10x15'
   const [cardSize, setCardSize] = useState('playing'); // 'playing' or 'business'
   const [cardImages, setCardImages] = useState(Array(9).fill(null));
+  const [useSingleImage, setUseSingleImage] = useState(false); // Toggle for single image mode
+  const [singleImage, setSingleImage] = useState(null); // Single image to repeat
 
   // Card dimensions based on selected card size (at 300 DPI with 3mm bleed)
   const cardSizes = {
@@ -365,6 +367,15 @@ const A4PageGenerator = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleSingleImageUpload = (event) => {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setSingleImage(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const drawA4Page = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -376,8 +387,13 @@ const A4PageGenerator = () => {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
+    // Determine which images to use
+    const imagesToDraw = useSingleImage
+      ? Array(currentPageSize.totalCards).fill(singleImage)
+      : cardImages;
+
     // Draw each card image based on current page size
-    cardImages.forEach((imageSrc, index) => {
+    imagesToDraw.forEach((imageSrc, index) => {
       if (imageSrc) {
         const img = new Image();
         img.src = imageSrc;
@@ -402,7 +418,7 @@ const A4PageGenerator = () => {
         };
       }
     });
-  }, [cardImages, PAGE_WIDTH, PAGE_HEIGHT, currentPageSize.cardsPerRow, currentPageSize.rotated, CARD_WIDTH, CARD_HEIGHT]);
+  }, [cardImages, singleImage, useSingleImage, PAGE_WIDTH, PAGE_HEIGHT, currentPageSize.cardsPerRow, currentPageSize.rotated, currentPageSize.totalCards, CARD_WIDTH, CARD_HEIGHT]);
 
   useEffect(() => {
     drawA4Page();
@@ -450,20 +466,48 @@ const A4PageGenerator = () => {
           </div>
         </div>
 
-        {/* Card Uploads */}
-        <div>
-          {cardImages.map((_, index) => (
-              <div key={index}>
-                <label htmlFor={`cardUpload${index}`}>Upload Card {index + 1}:</label>
-                <input
-                    type="file"
-                    id={`cardUpload${index}`}
-                    accept="image/*"
-                    onChange={(e) => handleCardUpload(index, e)}
-                />
-              </div>
-          ))}
+        {/* Single Image Mode Toggle */}
+        <div style={{marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px'}}>
+          <label>
+            <input
+                type="checkbox"
+                checked={useSingleImage}
+                onChange={(e) => setUseSingleImage(e.target.checked)}
+                style={{marginRight: '10px'}}
+            />
+            Use single image and repeat it across all cards
+          </label>
+
+          {useSingleImage && (
+            <div style={{marginTop: '10px'}}>
+              <label htmlFor="singleImageUpload">Upload Image to Repeat:</label>
+              <input
+                  type="file"
+                  id="singleImageUpload"
+                  accept="image/*"
+                  onChange={handleSingleImageUpload}
+                  style={{marginLeft: '10px'}}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Card Uploads */}
+        {!useSingleImage && (
+          <div>
+            {cardImages.map((_, index) => (
+                <div key={index}>
+                  <label htmlFor={`cardUpload${index}`}>Upload Card {index + 1}:</label>
+                  <input
+                      type="file"
+                      id={`cardUpload${index}`}
+                      accept="image/*"
+                      onChange={(e) => handleCardUpload(index, e)}
+                  />
+                </div>
+            ))}
+          </div>
+        )}
 
         {/* Canvas Wrapper */}
         <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
