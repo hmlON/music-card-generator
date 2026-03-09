@@ -262,12 +262,97 @@ const SingleCardGenerator = () => {
 
 const A4PageGenerator = () => {
   const canvasRef = useRef(null);
+  const [pageSize, setPageSize] = useState('a4'); // 'a4' or '10x15'
+  const [cardSize, setCardSize] = useState('playing'); // 'playing' or 'business'
   const [cardImages, setCardImages] = useState(Array(9).fill(null));
 
-  const A4_WIDTH = 2480; // A4 width in pixels at 300 DPI
-  const A4_HEIGHT = 3508; // A4 height in pixels at 300 DPI
-  const CARD_WIDTH = 744; // Card width with bleed
-  const CARD_HEIGHT = 1040; // Card height with bleed
+  // Card dimensions based on selected card size (at 300 DPI with 3mm bleed)
+  const cardSizes = {
+    playing: {
+      width: 744, // Playing card: 63mm (2.48") width with bleed
+      height: 1040, // Playing card: 88mm (3.46") height with bleed
+      name: 'Playing Card'
+    },
+    business: {
+      width: 590, // Wallet card: 50mm width with bleed (maintaining 63:88 ratio)
+      height: 825, // Wallet card: 70mm height with bleed (maintaining 63:88 ratio, fits in wallet)
+      name: 'Business Card'
+    }
+  };
+
+  const currentCardSize = cardSizes[cardSize];
+  const CARD_WIDTH = currentCardSize.width;
+  const CARD_HEIGHT = currentCardSize.height;
+
+  // Calculate how many cards fit based on page and card size
+  const calculateCardsPerPage = (pageWidth, pageHeight, cardWidth, cardHeight) => {
+    // Try portrait orientation
+    const portraitCardsPerRow = Math.floor(pageWidth / cardWidth);
+    const portraitCardsPerColumn = Math.floor(pageHeight / cardHeight);
+    const portraitTotal = portraitCardsPerRow * portraitCardsPerColumn;
+
+    // Try landscape orientation (rotated 90 degrees)
+    const landscapeCardsPerRow = Math.floor(pageWidth / cardHeight);
+    const landscapeCardsPerColumn = Math.floor(pageHeight / cardWidth);
+    const landscapeTotal = landscapeCardsPerRow * landscapeCardsPerColumn;
+
+    // Choose the orientation that fits more cards
+    if (landscapeTotal > portraitTotal) {
+      return {
+        cardsPerRow: landscapeCardsPerRow,
+        totalCards: landscapeTotal,
+        rotated: true
+      };
+    } else {
+      return {
+        cardsPerRow: portraitCardsPerRow,
+        totalCards: portraitTotal,
+        rotated: false
+      };
+    }
+  };
+
+  // Page dimensions based on selected size
+  const pageSizes = {
+    a4: {
+      width: 2480, // A4 width in pixels at 300 DPI
+      height: 3508, // A4 height in pixels at 300 DPI
+      ...calculateCardsPerPage(2480, 3508, CARD_WIDTH, CARD_HEIGHT)
+    },
+    '10x15': {
+      width: 1772, // 10x15cm width in pixels at 300 DPI
+      height: 1181, // 10x15cm height in pixels at 300 DPI
+      ...calculateCardsPerPage(1772, 1181, CARD_WIDTH, CARD_HEIGHT)
+    }
+  };
+
+  const currentPageSize = pageSizes[pageSize];
+  const PAGE_WIDTH = currentPageSize.width;
+  const PAGE_HEIGHT = currentPageSize.height;
+
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    const newPageSize = newSize === 'a4'
+      ? { width: 2480, height: 3508 }
+      : { width: 1772, height: 1181 };
+    const cardLayout = calculateCardsPerPage(newPageSize.width, newPageSize.height, CARD_WIDTH, CARD_HEIGHT);
+    setCardImages(Array(cardLayout.totalCards).fill(null));
+  };
+
+  const handleCardSizeChange = (newSize) => {
+    setCardSize(newSize);
+    const newCardDimensions = cardSizes[newSize];
+    const currentPageDimensions = pageSize === 'a4'
+      ? { width: 2480, height: 3508 }
+      : { width: 1772, height: 1181 };
+    const cardLayout = calculateCardsPerPage(
+      currentPageDimensions.width,
+      currentPageDimensions.height,
+      newCardDimensions.width,
+      newCardDimensions.height
+    );
+    setCardImages(Array(cardLayout.totalCards).fill(null));
+  };
 
   const handleCardUpload = (index, event) => {
     const file = event.target.files[0];
@@ -285,25 +370,39 @@ const A4PageGenerator = () => {
     const ctx = canvas.getContext('2d');
 
     // Clear the canvas
-    ctx.clearRect(0, 0, A4_WIDTH, A4_HEIGHT);
+    ctx.clearRect(0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
     // Fill the canvas with white background
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
+    ctx.fillRect(0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
-    // Draw each card image
+    // Draw each card image based on current page size
     cardImages.forEach((imageSrc, index) => {
       if (imageSrc) {
         const img = new Image();
         img.src = imageSrc;
         img.onload = () => {
-          const x = (index % 3) * CARD_WIDTH;
-          const y = Math.floor(index / 3) * CARD_HEIGHT;
-          ctx.drawImage(img, x, y, CARD_WIDTH, CARD_HEIGHT);
+          if (currentPageSize.rotated) {
+            // Draw rotated cards (landscape orientation)
+            const x = (index % currentPageSize.cardsPerRow) * CARD_HEIGHT;
+            const y = Math.floor(index / currentPageSize.cardsPerRow) * CARD_WIDTH;
+
+            ctx.save();
+            // Move to the position and rotate
+            ctx.translate(x + CARD_HEIGHT, y);
+            ctx.rotate(Math.PI / 2);
+            ctx.drawImage(img, 0, 0, CARD_WIDTH, CARD_HEIGHT);
+            ctx.restore();
+          } else {
+            // Draw normal cards (portrait orientation)
+            const x = (index % currentPageSize.cardsPerRow) * CARD_WIDTH;
+            const y = Math.floor(index / currentPageSize.cardsPerRow) * CARD_HEIGHT;
+            ctx.drawImage(img, x, y, CARD_WIDTH, CARD_HEIGHT);
+          }
         };
       }
     });
-  }, [cardImages]);
+  }, [cardImages, PAGE_WIDTH, PAGE_HEIGHT, currentPageSize.cardsPerRow, currentPageSize.rotated, CARD_WIDTH, CARD_HEIGHT]);
 
   useEffect(() => {
     drawA4Page();
@@ -312,14 +411,44 @@ const A4PageGenerator = () => {
   const handleDownload = () => {
     const canvas = canvasRef.current;
     const link = document.createElement('a');
-    link.download = 'a4-page.png';
+    link.download = `${pageSize}-page.png`;
     link.href = canvas.toDataURL();
     link.click();
   };
 
   return (
       <div style={{ textAlign: 'center', fontFamily: 'Nunito, sans-serif' }}>
-        <h1>A4 Page Generator</h1>
+        <h1>Page Generator</h1>
+
+        {/* Page Size Selector */}
+        <div style={{marginBottom: '20px'}}>
+          <label htmlFor="pageSize">Select Page Size: </label>
+          <select
+              id="pageSize"
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(e.target.value)}
+              style={{padding: '5px', fontSize: '16px', marginRight: '20px'}}
+          >
+            <option value="a4">A4</option>
+            <option value="10x15">10x15cm</option>
+          </select>
+
+          <label htmlFor="cardSize">Select Card Size: </label>
+          <select
+              id="cardSize"
+              value={cardSize}
+              onChange={(e) => handleCardSizeChange(e.target.value)}
+              style={{padding: '5px', fontSize: '16px'}}
+          >
+            <option value="playing">Playing Card (63x88mm)</option>
+            <option value="business">Wallet Card (50x70mm - same ratio as playing card)</option>
+          </select>
+
+          <div style={{marginTop: '10px', fontSize: '14px', color: '#666'}}>
+            {currentPageSize.totalCards} card{currentPageSize.totalCards !== 1 ? 's' : ''} will fit on this page
+            {currentPageSize.rotated && ' (rotated 90°)'}
+          </div>
+        </div>
 
         {/* Card Uploads */}
         <div>
@@ -342,8 +471,8 @@ const A4PageGenerator = () => {
           <div style={{overflow: 'auto', maxWidth: '80%', border: '1px solid black'}}>
             <canvas
                 ref={canvasRef}
-                width={A4_WIDTH}
-                height={A4_HEIGHT}
+                width={PAGE_WIDTH}
+                height={PAGE_HEIGHT}
                 style={{border: '0px solid black', width: '100%', height: 'auto'}}
             ></canvas>
           </div>
@@ -351,7 +480,7 @@ const A4PageGenerator = () => {
 
         {/* Download Button */}
         <div style={{marginTop: '10px'}}>
-          <button onClick={handleDownload}>Download A4 Page</button>
+          <button onClick={handleDownload}>Download {pageSize === 'a4' ? 'A4' : '10x15cm'} Page</button>
         </div>
       </div>
   );
