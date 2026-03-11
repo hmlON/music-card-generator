@@ -271,7 +271,7 @@ const A4PageGenerator = () => {
   const [cardImages, setCardImages] = useState(Array(9).fill(null));
   const [useSingleImage, setUseSingleImage] = useState(false); // Toggle for single image mode
   const [singleImage, setSingleImage] = useState(null); // Single image to repeat
-  const [useEqualSpacing, setUseEqualSpacing] = useState(false); // Toggle for equal spacing mode
+  const [edgePadding, setEdgePadding] = useState(0); // Edge padding in pixels
 
   // Card dimensions based on selected card size (at 300 DPI without bleed)
   const cardSizes = {
@@ -292,69 +292,40 @@ const A4PageGenerator = () => {
   const CARD_HEIGHT = currentCardSize.height;
 
   // Calculate how many cards fit based on page and card size
-  const calculateCardsPerPage = (pageWidth, pageHeight, cardWidth, cardHeight, equalSpacing = false) => {
-    if (equalSpacing) {
-      // For equal spacing mode, calculate based on card dimensions
-      // Cards are positioned at edges with equal spacing between them
+  const calculateCardsPerPage = (pageWidth, pageHeight, cardWidth, cardHeight, padding = 0) => {
+    // Adjust available space by removing padding from all edges
+    const availableWidth = pageWidth - (padding * 2);
+    const availableHeight = pageHeight - (padding * 2);
 
-      // Try portrait orientation
-      const portraitCardsPerRow = Math.floor(pageWidth / cardWidth);
-      const portraitCardsPerColumn = Math.floor(pageHeight / cardHeight);
-      const portraitTotal = portraitCardsPerRow * portraitCardsPerColumn;
+    // Try portrait orientation
+    const portraitCardsPerRow = Math.floor(availableWidth / cardWidth);
+    const portraitCardsPerColumn = Math.floor(availableHeight / cardHeight);
+    const portraitTotal = portraitCardsPerRow * portraitCardsPerColumn;
 
-      // Try landscape orientation (rotated 90 degrees)
-      const landscapeCardsPerRow = Math.floor(pageWidth / cardHeight);
-      const landscapeCardsPerColumn = Math.floor(pageHeight / cardWidth);
-      const landscapeTotal = landscapeCardsPerRow * landscapeCardsPerColumn;
+    // Try landscape orientation (rotated 90 degrees)
+    const landscapeCardsPerRow = Math.floor(availableWidth / cardHeight);
+    const landscapeCardsPerColumn = Math.floor(availableHeight / cardWidth);
+    const landscapeTotal = landscapeCardsPerRow * landscapeCardsPerColumn;
 
-      // Choose the orientation that fits more cards
-      if (landscapeTotal > portraitTotal) {
-        return {
-          cardsPerRow: landscapeCardsPerRow,
-          cardsPerColumn: landscapeCardsPerColumn,
-          totalCards: landscapeTotal,
-          rotated: true,
-          cardWidth,
-          cardHeight
-        };
-      } else {
-        return {
-          cardsPerRow: portraitCardsPerRow,
-          cardsPerColumn: portraitCardsPerColumn,
-          totalCards: portraitTotal,
-          rotated: false,
-          cardWidth,
-          cardHeight
-        };
-      }
+    // Choose the orientation that fits more cards
+    if (landscapeTotal > portraitTotal) {
+      return {
+        cardsPerRow: landscapeCardsPerRow,
+        cardsPerColumn: landscapeCardsPerColumn,
+        totalCards: landscapeTotal,
+        rotated: true,
+        cardWidth,
+        cardHeight
+      };
     } else {
-      // Original logic for non-equal spacing (cards can overlap slightly)
-      // Try portrait orientation
-      const portraitCardsPerRow = Math.floor(pageWidth / cardWidth);
-      const portraitCardsPerColumn = Math.floor(pageHeight / cardHeight);
-      const portraitTotal = portraitCardsPerRow * portraitCardsPerColumn;
-
-      // Try landscape orientation (rotated 90 degrees)
-      const landscapeCardsPerRow = Math.floor(pageWidth / cardHeight);
-      const landscapeCardsPerColumn = Math.floor(pageHeight / cardWidth);
-      const landscapeTotal = landscapeCardsPerRow * landscapeCardsPerColumn;
-
-      // Choose the orientation that fits more cards
-      if (landscapeTotal > portraitTotal) {
-        return {
-          cardsPerRow: landscapeCardsPerRow,
-          cardsPerColumn: landscapeCardsPerColumn,
-          totalCards: landscapeTotal,
-          rotated: true
-        };
-      } else {
-        return {
-          cardsPerRow: portraitCardsPerRow,
-          cardsPerColumn: portraitCardsPerColumn,
-          totalCards: portraitTotal,
-          rotated: false
-        };
-      }
+      return {
+        cardsPerRow: portraitCardsPerRow,
+        cardsPerColumn: portraitCardsPerColumn,
+        totalCards: portraitTotal,
+        rotated: false,
+        cardWidth,
+        cardHeight
+      };
     }
   };
 
@@ -363,12 +334,12 @@ const A4PageGenerator = () => {
     a4: {
       width: 2480, // A4 width in pixels at 300 DPI
       height: 3508, // A4 height in pixels at 300 DPI
-      ...calculateCardsPerPage(2480, 3508, CARD_WIDTH, CARD_HEIGHT, useEqualSpacing)
+      ...calculateCardsPerPage(2480, 3508, CARD_WIDTH, CARD_HEIGHT, edgePadding)
     },
     '10x15': {
       width: 1772, // 10x15cm width in pixels at 300 DPI
       height: 1181, // 10x15cm height in pixels at 300 DPI
-      ...calculateCardsPerPage(1772, 1181, CARD_WIDTH, CARD_HEIGHT, useEqualSpacing)
+      ...calculateCardsPerPage(1772, 1181, CARD_WIDTH, CARD_HEIGHT, edgePadding)
     }
   };
 
@@ -381,7 +352,7 @@ const A4PageGenerator = () => {
     const newPageSize = newSize === 'a4'
       ? { width: 2480, height: 3508 }
       : { width: 1772, height: 1181 };
-    const cardLayout = calculateCardsPerPage(newPageSize.width, newPageSize.height, CARD_WIDTH, CARD_HEIGHT, useEqualSpacing);
+    const cardLayout = calculateCardsPerPage(newPageSize.width, newPageSize.height, CARD_WIDTH, CARD_HEIGHT, edgePadding);
     setCardImages(Array(cardLayout.totalCards).fill(null));
   };
 
@@ -396,13 +367,13 @@ const A4PageGenerator = () => {
       currentPageDimensions.height,
       newCardDimensions.width,
       newCardDimensions.height,
-      useEqualSpacing
+      edgePadding
     );
     setCardImages(Array(cardLayout.totalCards).fill(null));
   };
 
-  const handleEqualSpacingChange = (enabled) => {
-    setUseEqualSpacing(enabled);
+  const handleEdgePaddingChange = (newPadding) => {
+    setEdgePadding(newPadding);
     const currentPageDimensions = pageSize === 'a4'
       ? { width: 2480, height: 3508 }
       : { width: 1772, height: 1181 };
@@ -411,7 +382,7 @@ const A4PageGenerator = () => {
       currentPageDimensions.height,
       CARD_WIDTH,
       CARD_HEIGHT,
-      enabled
+      newPadding
     );
     setCardImages(Array(cardLayout.totalCards).fill(null));
   };
@@ -452,107 +423,79 @@ const A4PageGenerator = () => {
       ? Array(currentPageSize.totalCards).fill(singleImage)
       : cardImages;
 
-    if (useEqualSpacing) {
-      // Equal spacing mode: cards at edges with equal spacing between
-      const cardWidth = currentPageSize.cardWidth;
-      const cardHeight = currentPageSize.cardHeight;
-      const cardsPerRow = currentPageSize.cardsPerRow;
-      const cardsPerColumn = currentPageSize.cardsPerColumn;
+    // Calculate spacing between cards
+    const cardWidth = currentPageSize.cardWidth;
+    const cardHeight = currentPageSize.cardHeight;
+    const cardsPerRow = currentPageSize.cardsPerRow;
+    const cardsPerColumn = currentPageSize.cardsPerColumn;
 
-      // Calculate spacing between cards
-      // For equal spacing: first card at (0,0), last card at (pageWidth-cardWidth, pageHeight-cardHeight)
-      // Space between cards = (totalSpace - allCardWidths) / (numCards - 1)
-      const effectiveCardWidth = currentPageSize.rotated ? cardHeight : cardWidth;
-      const effectiveCardHeight = currentPageSize.rotated ? cardWidth : cardHeight;
+    // Calculate spacing to distribute cards with equal spacing
+    const effectiveCardWidth = currentPageSize.rotated ? cardHeight : cardWidth;
+    const effectiveCardHeight = currentPageSize.rotated ? cardWidth : cardHeight;
 
-      // Calculate spacing to distribute cards from edge to edge
-      let horizontalSpacing = 0;
-      let verticalSpacing = 0;
+    // Calculate available space after removing edge padding
+    const availableWidth = PAGE_WIDTH - (edgePadding * 2);
+    const availableHeight = PAGE_HEIGHT - (edgePadding * 2);
 
-      if (cardsPerRow > 1) {
-        // Space available between cards
-        horizontalSpacing = (PAGE_WIDTH - effectiveCardWidth * cardsPerRow) / (cardsPerRow - 1);
-      }
+    // Calculate spacing to distribute cards from edge to edge
+    let horizontalSpacing = 0;
+    let verticalSpacing = 0;
 
-      if (cardsPerColumn > 1) {
-        // Space available between cards
-        verticalSpacing = (PAGE_HEIGHT - effectiveCardHeight * cardsPerColumn) / (cardsPerColumn - 1);
-      }
-
-      // Draw each card image
-      imagesToDraw.forEach((imageSrc, index) => {
-        if (imageSrc) {
-          const img = new Image();
-          img.src = imageSrc;
-          img.onload = () => {
-            const row = Math.floor(index / cardsPerRow);
-            const col = index % cardsPerRow;
-
-            if (currentPageSize.rotated) {
-              // Rotated cards (landscape orientation)
-              // Use consistent effective dimensions for positioning
-              const x = col * (effectiveCardWidth + horizontalSpacing);
-              const y = row * (effectiveCardHeight + verticalSpacing);
-
-              ctx.save();
-              ctx.translate(x + effectiveCardWidth, y);
-              ctx.rotate(Math.PI / 2);
-
-              // Draw the full source image scaled to fit the destination dimensions
-              ctx.drawImage(
-                img,
-                0, 0, // Draw entire source image
-                img.width, img.height, // Source size (full image)
-                0, 0, // Destination position
-                cardWidth, cardHeight // Destination size
-              );
-              ctx.restore();
-            } else {
-              // Portrait cards
-              const x = col * (effectiveCardWidth + horizontalSpacing);
-              const y = row * (effectiveCardHeight + verticalSpacing);
-
-              // Draw the full source image scaled to fit the destination dimensions
-              ctx.drawImage(
-                img,
-                0, 0, // Draw entire source image
-                img.width, img.height, // Source size (full image)
-                x, y, // Destination position
-                cardWidth, cardHeight // Destination size
-              );
-            }
-          };
-        }
-      });
-    } else {
-      // Original mode: cards with bleed overlapping
-      imagesToDraw.forEach((imageSrc, index) => {
-        if (imageSrc) {
-          const img = new Image();
-          img.src = imageSrc;
-          img.onload = () => {
-            if (currentPageSize.rotated) {
-              // Draw rotated cards (landscape orientation)
-              const x = (index % currentPageSize.cardsPerRow) * CARD_HEIGHT;
-              const y = Math.floor(index / currentPageSize.cardsPerRow) * CARD_WIDTH;
-
-              ctx.save();
-              // Move to the position and rotate
-              ctx.translate(x + CARD_HEIGHT, y);
-              ctx.rotate(Math.PI / 2);
-              ctx.drawImage(img, 0, 0, CARD_WIDTH, CARD_HEIGHT);
-              ctx.restore();
-            } else {
-              // Draw normal cards (portrait orientation)
-              const x = (index % currentPageSize.cardsPerRow) * CARD_WIDTH;
-              const y = Math.floor(index / currentPageSize.cardsPerRow) * CARD_HEIGHT;
-              ctx.drawImage(img, x, y, CARD_WIDTH, CARD_HEIGHT);
-            }
-          };
-        }
-      });
+    if (cardsPerRow > 1) {
+      // Space available between cards
+      horizontalSpacing = (availableWidth - effectiveCardWidth * cardsPerRow) / (cardsPerRow - 1);
     }
-  }, [cardImages, singleImage, useSingleImage, useEqualSpacing, PAGE_WIDTH, PAGE_HEIGHT, currentPageSize, CARD_WIDTH, CARD_HEIGHT]);
+
+    if (cardsPerColumn > 1) {
+      // Space available between cards
+      verticalSpacing = (availableHeight - effectiveCardHeight * cardsPerColumn) / (cardsPerColumn - 1);
+    }
+
+    // Draw each card image
+    imagesToDraw.forEach((imageSrc, index) => {
+      if (imageSrc) {
+        const img = new Image();
+        img.src = imageSrc;
+        img.onload = () => {
+          const row = Math.floor(index / cardsPerRow);
+          const col = index % cardsPerRow;
+
+          if (currentPageSize.rotated) {
+            // Rotated cards (landscape orientation)
+            const x = edgePadding + col * (effectiveCardWidth + horizontalSpacing);
+            const y = edgePadding + row * (effectiveCardHeight + verticalSpacing);
+
+            ctx.save();
+            ctx.translate(x + effectiveCardWidth, y);
+            ctx.rotate(Math.PI / 2);
+
+            // Draw the full source image scaled to fit the destination dimensions
+            ctx.drawImage(
+              img,
+              0, 0, // Draw entire source image
+              img.width, img.height, // Source size (full image)
+              0, 0, // Destination position
+              cardWidth, cardHeight // Destination size
+            );
+            ctx.restore();
+          } else {
+            // Portrait cards
+            const x = edgePadding + col * (effectiveCardWidth + horizontalSpacing);
+            const y = edgePadding + row * (effectiveCardHeight + verticalSpacing);
+
+            // Draw the full source image scaled to fit the destination dimensions
+            ctx.drawImage(
+              img,
+              0, 0, // Draw entire source image
+              img.width, img.height, // Source size (full image)
+              x, y, // Destination position
+              cardWidth, cardHeight // Destination size
+            );
+          }
+        };
+      }
+    });
+  }, [cardImages, singleImage, useSingleImage, PAGE_WIDTH, PAGE_HEIGHT, currentPageSize, edgePadding]);
 
   useEffect(() => {
     drawA4Page();
@@ -601,22 +544,26 @@ const A4PageGenerator = () => {
               </select>
             </div>
 
+            {/* Edge Padding Control */}
+            <div>
+              <label htmlFor="edgePadding" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Edge Padding: {edgePadding}px ({(edgePadding / 300 * 25.4).toFixed(1)}mm)
+              </label>
+              <input
+                  type="range"
+                  id="edgePadding"
+                  min="0"
+                  max="200"
+                  step="10"
+                  value={edgePadding}
+                  onChange={(e) => handleEdgePaddingChange(Number(e.target.value))}
+                  style={{width: '100%'}}
+              />
+            </div>
+
             <div style={{padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px', fontSize: '14px', color: '#666'}}>
               {currentPageSize.totalCards} card{currentPageSize.totalCards !== 1 ? 's' : ''} will fit on this page
               {currentPageSize.rotated && ' (rotated 90°)'}
-            </div>
-
-            {/* Equal Spacing Mode Toggle */}
-            <div style={{padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px'}}>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                <input
-                    type="checkbox"
-                    checked={useEqualSpacing}
-                    onChange={(e) => handleEqualSpacingChange(e.target.checked)}
-                    style={{marginRight: '10px'}}
-                />
-                <span style={{ fontSize: '14px' }}>Use equal spacing (cards at edges with equal spacing between cards)</span>
-              </label>
             </div>
 
             {/* Single Image Mode Toggle */}
